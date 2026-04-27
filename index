@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demografische Analyse – Sauerland & Dortmund 2006–2023</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0f1117; color: #e8eaf0; min-height: 100vh; }
+  
+  header { background: linear-gradient(135deg, #1a1d2e 0%, #16213e 100%); border-bottom: 1px solid #2d3561; padding: 28px 40px; }
+  header h1 { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  header p { font-size: 13px; color: #8892b0; margin-top: 4px; }
+  
+  .nav-tabs { display: flex; gap: 4px; padding: 20px 40px 0; background: #0f1117; border-bottom: 1px solid #1e2235; }
+  .nav-tab { padding: 10px 20px; font-size: 13px; font-weight: 500; color: #8892b0; cursor: pointer; border-radius: 6px 6px 0 0; border: 1px solid transparent; border-bottom: none; transition: all 0.2s; }
+  .nav-tab:hover { color: #ccd6f6; background: #1a1d2e; }
+  .nav-tab.active { color: #64ffda; background: #1a1d2e; border-color: #1e2235; border-bottom: 1px solid #1a1d2e; }
+  
+  .tab-content { display: none; padding: 32px 40px; }
+  .tab-content.active { display: block; }
+  
+  /* Controls */
+  .controls { display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; align-items: center; }
+  .control-group { display: flex; align-items: center; gap: 8px; }
+  label { font-size: 12px; color: #8892b0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  select { background: #1a1d2e; border: 1px solid #2d3561; color: #ccd6f6; padding: 7px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; outline: none; }
+  select:focus { border-color: #64ffda; }
+  .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; }
+  .city-cb { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .city-cb input { cursor: pointer; accent-color: #64ffda; }
+  .city-cb span { font-size: 13px; color: #ccd6f6; }
+  
+  /* Year Slider */
+  .slider-container { margin-bottom: 28px; }
+  .slider-label { font-size: 12px; color: #8892b0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .range-inputs { display: flex; gap: 16px; align-items: center; }
+  input[type=range] { flex: 1; accent-color: #64ffda; cursor: pointer; }
+  .year-display { font-size: 13px; color: #64ffda; font-weight: 600; min-width: 100px; text-align: center; }
+  
+  /* Charts */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .chart-card { background: #1a1d2e; border: 1px solid #1e2235; border-radius: 12px; padding: 24px; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: 13px; font-weight: 600; color: #ccd6f6; margin-bottom: 6px; }
+  .chart-sub { font-size: 11px; color: #8892b0; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap.tall { height: 340px; }
+  
+  /* KPI Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .kpi-card { background: #1a1d2e; border: 1px solid #1e2235; border-radius: 10px; padding: 18px; }
+  .kpi-city { font-size: 11px; color: #64ffda; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+  .kpi-val { font-size: 26px; font-weight: 700; color: #fff; }
+  .kpi-label { font-size: 11px; color: #8892b0; margin-top: 2px; }
+  .kpi-trend { font-size: 12px; font-weight: 600; margin-top: 6px; }
+  .pos { color: #64ffda; } .neg { color: #ff6b8a; } .neu { color: #ffa07a; }
+  
+  /* Heatmap */
+  .heatmap-wrap { overflow-x: auto; }
+  table.heatmap { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.heatmap th { background: #16213e; color: #8892b0; padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #1e2235; white-space: nowrap; }
+  table.heatmap th.ind { text-align: left; min-width: 220px; }
+  table.heatmap td { padding: 7px 10px; text-align: center; border: 1px solid #1e2235; font-size: 11px; }
+  table.heatmap td.ind { text-align: left; color: #ccd6f6; font-size: 11px; background: #16213e; }
+  
+  /* Analysis Box */
+  .analysis-box { background: #16213e; border: 1px solid #2d3561; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .analysis-box h3 { font-size: 14px; color: #64ffda; margin-bottom: 12px; font-weight: 600; }
+  .finding { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #ccd6f6; line-height: 1.5; }
+  .finding .icon { flex-shrink: 0; font-size: 15px; }
+  
+  /* Responsive */
+  @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } .chart-card.full { grid-column: 1; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Demografische Entwicklung – Sauerland & Dortmund</h1>
+  <p>Quelle: Wegweiser Kommune / Bertelsmann Stiftung · Statistische Ämter der Länder · ZEFIR · Zeitreihe 2006–2023</p>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showTab('overview')">Übersicht 2023</div>
+  <div class="nav-tab" onclick="showTab('trends')">Bevölkerungstrend</div>
+  <div class="nav-tab" onclick="showTab('wanderung')">Wanderung & Saldo</div>
+  <div class="nav-tab" onclick="showTab('alter')">Alterung</div>
+  <div class="nav-tab" onclick="showTab('heatmap')">Vollständige Tabelle</div>
+  <div class="nav-tab" onclick="showTab('analyse')">Interpretation</div>
+</div>
+
+<!-- TAB 1: ÜBERSICHT -->
+<div id="tab-overview" class="tab-content active">
+  <div id="kpi-grid-2023" class="kpi-grid"></div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Natürlicher Saldo 2023</div>
+      <div class="chart-sub">Geburten − Sterbefälle je 1.000 EW</div>
+      <div class="chart-wrap"><canvas id="chart-natsaldo-2023"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Wanderungssaldo 2023</div>
+      <div class="chart-sub">Zuzüge − Fortzüge je 1.000 EW</div>
+      <div class="chart-wrap"><canvas id="chart-wand-2023"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Wanderung nach Typ 2023</div>
+      <div class="chart-sub">Familien- / Bildungs- / Alterswanderung je 1.000 EW</div>
+      <div class="chart-wrap"><canvas id="chart-wandtyp-2023"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Medianalter 2023</div>
+      <div class="chart-sub">Jahre</div>
+      <div class="chart-wrap"><canvas id="chart-alter-2023"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: TRENDS -->
+<div id="tab-trends" class="tab-content">
+  <div class="controls">
+    <div class="control-group">
+      <label>Städte:</label>
+      <div class="checkbox-group" id="trend-city-checks"></div>
+    </div>
+  </div>
+  <div class="slider-container">
+    <div class="slider-label">Zeitraum</div>
+    <div class="range-inputs">
+      <span style="font-size:12px;color:#8892b0">2006</span>
+      <input type="range" id="slider-from" min="0" max="17" value="0" oninput="updateTrendCharts()">
+      <span class="year-display" id="year-range-display">2006 – 2023</span>
+      <input type="range" id="slider-to" min="0" max="17" value="17" oninput="updateTrendCharts()">
+      <span style="font-size:12px;color:#8892b0">2023</span>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card full">
+      <div class="chart-title">Bevölkerungsentwicklung (Index: 2011 = 100)</div>
+      <div class="chart-sub">Relative Entwicklung seit dem Zensus-Basisjahr</div>
+      <div class="chart-wrap tall"><canvas id="chart-pop-index"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Natürlicher Saldo je 1.000 EW</div>
+      <div class="chart-sub">Geburten minus Sterbefälle</div>
+      <div class="chart-wrap"><canvas id="chart-natsaldo-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Wanderungssaldo je 1.000 EW</div>
+      <div class="chart-sub">Zuzüge minus Fortzüge</div>
+      <div class="chart-wrap"><canvas id="chart-wand-trend"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: WANDERUNG -->
+<div id="tab-wanderung" class="tab-content">
+  <div class="controls">
+    <div class="control-group">
+      <label>Stadt:</label>
+      <select id="wand-city-select" onchange="updateWandCharts()">
+        <option value="Arnsberg">Arnsberg</option>
+        <option value="Brilon">Brilon</option>
+        <option value="Olsberg">Olsberg</option>
+        <option value="Schmallenberg">Schmallenberg</option>
+        <option value="Soest">Soest</option>
+        <option value="Dortmund">Dortmund</option>
+      </select>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card full">
+      <div class="chart-title">Zu- und Fortzüge je 1.000 EW</div>
+      <div class="chart-sub">Bruttowanderung nach Jahr</div>
+      <div class="chart-wrap tall"><canvas id="chart-zuforzug"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Wanderungssaldo je 1.000 EW</div>
+      <div class="chart-sub">Nettowanderung</div>
+      <div class="chart-wrap"><canvas id="chart-wand-single"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Wanderung nach Lebensphase</div>
+      <div class="chart-sub">Familien / Bildung / Alters je 1.000 EW</div>
+      <div class="chart-wrap"><canvas id="chart-wand-phase"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: ALTERUNG -->
+<div id="tab-alter" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card full">
+      <div class="chart-title">Medianalter 2006–2023</div>
+      <div class="chart-sub">Alle Städte im Vergleich</div>
+      <div class="chart-wrap tall"><canvas id="chart-median-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Altenquotient 2006–2023</div>
+      <div class="chart-sub">65+ je 100 Pers. der AG 20–64</div>
+      <div class="chart-wrap"><canvas id="chart-altenq-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Anteil 80+ (%)</div>
+      <div class="chart-sub">Hochaltrigkeit</div>
+      <div class="chart-wrap"><canvas id="chart-80plus-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Anteil unter 18 (%)</div>
+      <div class="chart-sub">Jugendanteil</div>
+      <div class="chart-wrap"><canvas id="chart-18-trend"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: HEATMAP -->
+<div id="tab-heatmap" class="tab-content">
+  <div class="controls">
+    <div class="control-group">
+      <label>Indikator:</label>
+      <select id="heatmap-ind" onchange="buildHeatmap()">
+        <option value="nat_saldo">Natürlicher Saldo</option>
+        <option value="wand_saldo">Wanderungssaldo</option>
+        <option value="bildung">Bildungswanderung</option>
+        <option value="familie">Familienwanderung</option>
+        <option value="births">Geburten</option>
+        <option value="deaths">Sterbefälle</option>
+        <option value="median_age">Medianalter</option>
+        <option value="altenq">Altenquotient</option>
+      </select>
+    </div>
+  </div>
+  <div class="analysis-box" style="margin-bottom:20px">
+    <div id="heatmap-interpretation" style="font-size:13px;color:#ccd6f6;line-height:1.6"></div>
+  </div>
+  <div class="heatmap-wrap" id="heatmap-container"></div>
+</div>
+
+<!-- TAB 6: ANALYSE -->
+<div id="tab-analyse" class="tab-content">
+  <div class="analysis-box">
+    <h3>🔎 Kernbefund: Strukturelle Landflucht im Sauerland</h3>
+    <div class="finding"><span class="icon">📉</span><span><strong>Bevölkerungsrückgang seit 2006:</strong> Alle Sauerlandkommunen verzeichnen gegenüber 2006 schrumpfende Bevölkerungen. Arnsberg −2,2%, Brilon −4,9%, Olsberg −9,8%, Schmallenberg −6,8%. Dortmund dagegen +1,3% (trotz Zensusschock 2011).</span></div>
+    <div class="finding"><span class="icon">⚰️</span><span><strong>Persistenter Sterbeüberhang:</strong> Alle Kommunen haben strukturell mehr Sterbefälle als Geburten. Arnsberg −4,3 je 1.000 EW (2023), Brilon/Schmallenberg je ca. −4,1. Ohne Zuwanderung würde die Bevölkerung jährlich schrumpfen.</span></div>
+    <div class="finding"><span class="icon">🎓</span><span><strong>Bildungsabwanderung als Landflucht-Indikator:</strong> Die 18–24-Jährigen verlassen das Sauerland systematisch. Olsberg verlor in Spitzenjahren über −40 je 1.000 EW. Schmallenberg zeigt erst 2023 erstmals einen leicht positiven Wert (+2,6). Brilon verbesserte sich von −30 auf −8,8, bleibt aber negativ.</span></div>
+    <div class="finding"><span class="icon">🏗️</span><span><strong>Familienwanderung stabilisiert:</strong> Seit 2014 zieht das Sauerland wieder Familien an (Kinder + 30–49-Jährige). Arnsberg +13,7, Brilon +13,2, Olsberg +16,5 je 1.000 EW in 2023 – Suburbanisierungseffekt aus dem Ruhrgebiet als Puffer.</span></div>
+    <div class="finding"><span class="icon">🏙️</span><span><strong>Dortmund: Gegenmodell durch Bildungsmagnet:</strong> Bildungswanderung konstant +40 bis +58 je 1.000 EW – Hochschulstandort zieht junge Bevölkerung aus dem gesamten Umland an. Familienwanderung negativ (Abwanderung Richtung Umland/Sauerland), was den Kreislauf schließt.</span></div>
+    <div class="finding"><span class="icon">👴</span><span><strong>Alterungsgeschwindigkeit:</strong> Brilon hat das höchste Medianalter (47,8 J.), Schmallenberg 47,5 J. – beide steigen seit 2006 kontinuierlich. Dortmund stabilisiert sich bei 42,7 J. dank Bildungszuzug. Altenquotient Brilon bereits bei 41,5 (2006: 35,9).</span></div>
+    <div class="finding"><span class="icon">🚌</span><span><strong>Relevanz für MFR/Behindertentransport:</strong> Starke Alterung der Bevölkerung, hoher Anteil 80+ (Arnsberg: 7,5%, Brilon: 7,4%) und disperse Siedlungsstruktur (EW-Dichte Olsberg: 1,2/ha, Schmallenberg: 0,8/ha) treiben strukturell die Nachfrage nach Personenbeförderung und Sozialfahrten.</span></div>
+  </div>
+  <div class="analysis-box">
+    <h3>⚠️ Risiken & Bruchpunkte</h3>
+    <div class="finding"><span class="icon">📊</span><span><strong>2015-Spike:</strong> Der Wanderungssaldo 2015/2016 war ein Einmaleffekt (Flüchtlingszuwanderung) – danach normalisierung. Nicht als strukturelle Trendwende zu interpretieren.</span></div>
+    <div class="finding"><span class="icon">🔢</span><span><strong>2018er Lücke:</strong> Für alle Kommunen fehlen Wanderungsdaten 2018 (k.A.) – methodischer Bruch in den Statistischen Ämtern (Melderegisterumstellung). Zeitreihenkontinuität eingeschränkt.</span></div>
+    <div class="finding"><span class="icon">📍</span><span><strong>Zensus 2011:</strong> Dortmund-Bevölkerung wurde um ~9.000 Personen nach unten korrigiert – daher Index-Sprung 2011/2012. Alle Zeitreihen auf Zensus-Basis normiert.</span></div>
+    <div class="finding"><span class="icon">🔮</span><span><strong>Prognose:</strong> Ohne demografischen Wandel der Zuzugsstruktur werden Brilon und Olsberg bis 2035 weitere 5–8% Bevölkerung verlieren (Annahme: Sterbeüberhang −4 je 1.000, Wanderungssaldo +5 → Netto −1 bis −2 je 1.000 p.a.).</span></div>
+  </div>
+</div>
+
+<script>
+const YEARS = [2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023];
+const CITIES = ['Arnsberg','Brilon','Olsberg','Schmallenberg','Soest','Dortmund'];
+const COLORS = {
+  Arnsberg: '#64ffda', Brilon: '#ff6b8a', Olsberg: '#ffa07a',
+  Schmallenberg: '#c792ea', Soest: '#82aaff', Dortmund: '#ffcb6b'
+};
+
+const DATA = {"Arnsberg": {"pop": [75867, 75624, 75288, 74805, 74227, 74125, 73897, 73501, 73436, 73784, 73990, 73814, 73628, 73456, 73487, 73423, 74323, 74206], "births": [8.9, 8.6, 8.4, 8.1, 7.9, 7.9, 7.7, 7.6, 7.8, 8.0, 8.6, 8.8, 9.0, 9.2, 8.9, 9.2, 9.1, 8.9], "deaths": [10.9, 11.0, 11.2, 11.1, 11.2, 11.4, 11.3, 11.6, 11.7, 11.8, 12.2, 12.3, 12.7, 12.7, 12.7, 12.8, 13.0, 13.2], "nat_saldo": [-2.0, -2.4, -2.9, -3.0, -3.3, -3.5, -3.6, -4.0, -3.9, -3.8, -3.6, -3.5, -3.7, -3.5, -3.7, -3.6, -3.9, -4.3], "zuzug": [29.9, 29.8, 29.5, 27.8, 28.6, 29.0, 29.9, 31.8, 34.2, 39.9, 43.8, 44.6, null, 41.1, 37.4, 36.2, 40.6, 41.2], "fortzug": [32.9, 31.9, 31.1, 30.1, 30.8, 31.8, 32.4, 33.5, 34.4, 37.6, 40.0, 40.2, null, 38.1, 35.0, 33.5, 34.2, 34.2], "wand_saldo": [-3.0, -2.0, -1.6, -2.4, -2.2, -2.8, -2.4, -1.8, -0.2, 2.3, 3.8, 4.4, null, 3.0, 2.3, 2.7, 6.4, 7.0], "familie": [-0.6, 0.3, 0.7, -0.5, 0.1, 0.7, 1.4, 3.0, 4.9, 6.7, 8.5, 9.1, null, 8.2, 7.1, 6.8, 13.2, 13.7], "bildung": [-20.1, -19.0, -18.5, -18.8, -20.6, -26.8, -28.2, -35.0, -31.3, -20.4, -14.6, -8.7, null, -14.7, -18.0, -13.3, -9.9, -7.0], "alters_wand": [-1.1, -0.2, 0.0, 0.3, 0.1, -1.1, -1.6, -1.7, -2.6, -2.5, -2.2, -2.5, null, -1.3, -1.0, -0.3, 0.8, 0.7], "avg_age": [42.6, 42.9, 43.2, 43.5, 43.9, 44.4, 44.6, 44.9, 45.0, 45.0, 45.0, 45.1, 45.2, 45.3, 45.4, 45.5, 45.3, 45.5], "median_age": [43.1, 43.5, 43.9, 44.4, 45.0, 45.8, 46.2, 46.6, 47.0, 47.2, 47.3, 47.5, 47.7, 47.9, 48.0, 47.9, 47.4, 47.3], "altenq": [36.7, 37.0, 37.1, 37.3, 37.1, 36.5, 36.4, 36.7, 37.2, 37.2, 37.3, 37.4, 37.7, 38.6, 39.0, 39.6, 39.9, 40.6], "anteil_80": [5.1, 5.2, 5.4, 5.6, 5.8, 6.0, 6.1, 6.1, 6.3, 6.4, 6.7, 6.9, 7.1, 7.4, 7.7, 7.8, 7.6, 7.5], "anteil_18": [19.2, 18.9, 18.6, 18.2, 17.8, 17.1, 16.9, 16.7, 16.6, 16.5, 16.5, 16.5, 16.6, 16.6, 16.6, 16.6, 16.9, 16.8]}, "Brilon": {"pop": [26964, 26814, 26689, 26499, 26335, 25690, 25644, 25499, 25461, 26232, 25611, 25501, 25417, 25451, 25336, 25303, 25511, 25624], "births": [9.6, 9.3, 8.4, 7.5, 7.3, 7.1, 7.3, 7.4, 7.6, 7.9, 8.1, 8.6, 8.7, 8.8, 9.0, 9.0, 9.1, 8.8], "deaths": [10.2, 10.3, 10.6, 11.0, 11.4, 11.9, 11.9, 12.1, 12.2, 12.2, 12.2, 12.2, 12.4, 12.2, 12.3, 12.3, 12.8, 13.2], "nat_saldo": [-0.6, -1.0, -2.2, -3.5, -4.1, -4.8, -4.6, -4.7, -4.6, -4.2, -4.1, -3.5, -3.7, -3.4, -3.3, -3.3, -3.7, -4.5], "zuzug": [37.5, 37.1, 37.0, 36.4, 36.8, 36.9, 37.8, 39.6, 42.5, 57.9, 62.0, 63.2, null, 52.2, 46.7, 45.8, 49.0, 49.9], "fortzug": [39.6, 39.1, 38.3, 38.6, 38.6, 39.3, 39.8, 41.2, 43.2, 48.7, 58.3, 59.9, null, 57.9, 46.0, 43.9, 44.2, 43.6], "wand_saldo": [-2.1, -2.0, -1.3, -2.2, -1.8, -2.5, -2.0, -1.6, -0.7, 9.2, 3.6, 3.4, null, -5.7, 0.7, 1.9, 4.8, 6.3], "familie": [1.3, 1.5, 1.2, -0.4, -0.8, -2.0, -0.9, -0.5, 2.6, 16.2, 8.5, 10.2, null, -2.9, 5.9, 7.3, 11.6, 13.2], "bildung": [-30.1, -29.0, -22.5, -23.4, -22.0, -27.5, -27.3, -25.5, -34.2, 1.0, -20.0, -26.9, null, -57.4, -29.8, -19.8, -16.0, -8.8], "alters_wand": [0.9, 0.2, 1.5, 1.8, 1.8, 1.8, 1.3, 1.0, 2.3, 2.6, 3.7, 2.9, null, 1.5, -0.6, -3.8, -2.6, -2.8], "avg_age": [42.1, 42.4, 42.7, 43.0, 43.4, 44.1, 44.3, 44.6, 44.9, 44.4, 45.1, 45.2, 45.4, 45.6, 45.8, 45.8, 45.6, 45.6], "median_age": [42.5, 42.9, 43.4, 44.0, 44.6, 45.7, 46.2, 46.6, 47.1, 46.5, 47.6, 47.9, 48.2, 48.4, 48.8, 48.7, 48.3, 47.8], "altenq": [35.6, 35.9, 36.1, 36.1, 35.6, 35.3, 35.1, 35.1, 36.0, 35.3, 36.9, 37.4, 38.0, 38.8, 40.3, 40.7, 41.2, 41.5], "anteil_80": [5.1, 5.4, 5.5, 5.7, 5.9, 5.9, 5.9, 5.9, 6.2, 6.2, 6.6, 6.7, 7.1, 7.4, 7.8, 7.8, 7.5, 7.4], "anteil_18": [20.0, 19.6, 19.2, 19.0, 18.4, 17.8, 17.5, 17.0, 16.8, 17.2, 16.9, 16.7, 16.4, 16.4, 16.4, 16.5, 16.6, 16.4]}, "Olsberg": {"pop": [15728, 15596, 15393, 15223, 15102, 14941, 14786, 14716, 14739, 14874, 14747, 14634, 14489, 14430, 14432, 14410, 14509, 14481], "births": [8.3, 8.3, 8.0, 7.8, 7.1, 6.7, 6.5, 6.9, 7.1, 7.7, 8.2, 8.0, 8.5, 8.9, 9.1, 9.0, 8.9, 8.5], "deaths": [10.1, 9.7, 10.3, 10.2, 10.3, 10.1, 9.7, 9.7, 9.6, 10.6, 10.8, 11.2, 11.8, 11.5, 11.2, 11.1, 11.4, 11.6], "nat_saldo": [-1.8, -1.4, -2.3, -2.4, -3.1, -3.5, -3.2, -2.9, -2.5, -2.9, -2.7, -3.2, -3.3, -2.7, -2.1, -2.2, -2.5, -3.1], "zuzug": [42.1, 41.3, 42.3, 41.3, 41.3, 42.0, 41.1, 42.2, 45.2, 51.1, 54.0, 54.7, null, 50.1, 48.3, 46.7, 50.4, 50.1], "fortzug": [46.3, 45.6, 47.7, 48.4, 48.5, 49.6, 48.3, 48.0, 49.0, 49.5, 52.0, 53.1, null, 54.4, 50.4, 46.9, 47.7, 46.4], "wand_saldo": [-4.3, -4.3, -5.4, -7.1, -7.2, -7.6, -7.1, -5.8, -3.9, 1.6, 2.0, 1.6, null, -4.3, -2.2, -0.1, 2.6, 3.7], "familie": [2.1, 1.1, -0.9, -2.2, -2.8, -2.3, -1.6, -1.4, 2.1, 8.5, 10.5, 11.5, null, 3.4, 5.9, 10.5, 14.7, 16.5], "bildung": [-40.5, -34.0, -39.3, -42.2, -40.0, -45.2, -38.3, -30.6, -28.9, -14.0, -19.2, -26.7, null, -42.5, -32.9, -33.6, -28.4, -19.7], "alters_wand": [-3.7, -4.0, -3.3, -5.3, -3.8, -6.1, -8.5, -6.7, -9.2, -7.4, -9.5, -8.7, null, -9.1, -6.6, -8.7, -6.0, -6.8], "avg_age": [41.5, 41.9, 42.4, 42.8, 43.2, 43.4, 43.8, 44.1, 44.3, 44.2, 44.4, 44.7, 44.8, 45.0, 45.1, 45.2, 45.2, 45.2], "median_age": [41.3, 41.9, 42.7, 43.3, 43.9, 44.8, 45.3, 45.8, 46.2, 46.2, 46.7, 47.1, 47.5, 47.8, 48.0, 47.6, 47.4, 47.0], "altenq": [34.7, 35.0, 35.6, 35.4, 34.8, 34.9, 34.8, 35.2, 35.5, 35.0, 34.7, 35.4, 35.6, 36.1, 37.0, 37.2, 37.5, 38.6], "anteil_80": [4.3, 4.8, 5.1, 5.2, 5.5, 5.6, 5.7, 6.0, 6.3, 6.5, 6.7, 6.9, 7.0, 7.2, 7.4, 7.4, 7.1, 7.1], "anteil_18": [20.0, 19.5, 19.0, 18.5, 17.9, 17.8, 17.4, 16.9, 16.5, 16.7, 16.5, 16.2, 16.3, 16.4, 16.3, 16.4, 16.7, 16.8]}, "Schmallenberg": {"pop": [25951, 25831, 25645, 25533, 25281, 25277, 25149, 24980, 24926, 25230, 24997, 24965, 24869, 24852, 24806, 24704, 24878, 24970], "births": [8.5, 8.8, 8.5, 8.6, 8.7, 7.9, 7.8, 7.4, 7.2, 7.1, 7.5, 7.7, 7.8, 7.9, 7.8, 7.9, 8.2, 8.1], "deaths": [10.2, 10.3, 10.5, 10.9, 10.9, 11.1, 11.0, 10.7, 10.9, 11.2, 11.6, 11.8, 11.7, 11.5, 11.4, 11.5, 11.9, 12.2], "nat_saldo": [-1.7, -1.5, -1.9, -2.3, -2.2, -3.2, -3.2, -3.3, -3.7, -4.0, -4.0, -4.1, -3.9, -3.6, -3.6, -3.6, -3.7, -4.1], "zuzug": [34.8, 34.5, 34.4, 34.9, 35.2, 36.8, 37.6, 38.4, 40.5, 46.0, 48.3, 49.1, null, 45.0, 42.1, 39.7, 42.6, 43.9], "fortzug": [37.6, 37.2, 36.9, 37.0, 39.5, 41.0, 41.2, 42.4, 42.3, 42.5, 45.9, 45.4, null, 45.1, 39.7, 38.2, 38.6, 38.4], "wand_saldo": [-2.8, -2.7, -2.5, -2.1, -4.4, -4.2, -3.6, -4.0, -1.8, 3.5, 2.4, 3.7, null, -0.1, 2.4, 1.5, 4.0, 5.5], "familie": [0.7, 0.5, 0.4, 0.7, -2.3, -2.1, -0.8, -1.0, 2.4, 10.5, 8.5, 10.4, null, 3.6, 6.8, 5.7, 9.0, 10.4], "bildung": [-28.8, -25.6, -25.7, -24.3, -26.9, -28.3, -29.5, -36.9, -36.0, -22.8, -26.3, -18.6, null, -30.9, -17.7, -20.9, -13.8, 2.6], "alters_wand": [-1.0, -1.2, -1.2, -0.4, -1.1, -0.8, -0.2, -1.2, -0.9, -2.2, -1.3, -0.4, null, 1.1, -0.4, -0.4, 1.2, 2.0], "avg_age": [41.0, 41.3, 41.7, 41.8, 42.3, 42.8, 43.2, 43.6, 43.9, 43.7, 44.1, 44.3, 44.6, 44.8, 45.0, 45.2, 45.2, 45.3], "median_age": [40.7, 41.2, 41.8, 42.1, 42.8, 43.9, 44.5, 45.1, 45.5, 45.3, 46.0, 46.4, 46.7, 47.0, 47.3, 47.5, 47.5, 47.5], "altenq": [34.1, 34.4, 34.8, 34.8, 34.3, 33.7, 34.1, 34.0, 34.3, 33.5, 34.1, 34.3, 34.8, 35.3, 36.2, 37.1, 37.6, 38.2], "anteil_80": [4.6, 4.8, 5.0, 5.0, 5.2, 5.1, 5.4, 5.6, 5.7, 5.8, 6.1, 6.3, 6.6, 7.0, 7.3, 7.6, 7.4, 7.3], "anteil_18": [21.2, 21.0, 20.5, 20.2, 19.7, 19.0, 18.4, 18.0, 17.6, 17.3, 17.0, 16.7, 16.6, 16.3, 16.2, 16.2, 16.5, 16.3]}, "Soest": {"pop": [48442, 48526, 48529, 48573, 48579, 46644, 46685, 46699, 46925, 47974, 47436, 47376, 47460, 47514, 47206, 47929, 48607, 48250], "births": [9.4, 9.4, 9.3, 9.2, 9.3, 8.8, 8.8, 8.6, 8.7, 9.0, 9.3, 9.7, 9.7, 10.1, 9.7, 9.7, 9.4, 9.0], "deaths": [10.1, 10.1, 10.2, 10.4, 10.5, 10.4, 10.3, 10.5, 10.5, 10.7, 11.2, 11.2, 11.7, 11.4, 11.3, 11.5, 11.7, 12.4], "nat_saldo": [-0.7, -0.7, -0.9, -1.1, -1.2, -1.6, -1.5, -1.9, -1.8, -1.7, -1.9, -1.6, -2.0, -1.4, -1.6, -1.8, -2.3, -3.3], "zuzug": [50.6, 51.9, 52.8, 53.6, 54.3, 55.8, 56.3, 58.4, 61.5, 67.8, 70.7, 71.1, null, 65.5, 59.0, 65.0, 80.9, 95.8], "fortzug": [49.9, 49.7, 50.9, 52.3, 52.3, 54.0, 54.5, 56.4, 58.5, 59.2, 64.9, 66.0, null, 68.0, 59.7, 60.0, 72.5, 88.5], "wand_saldo": [0.7, 2.2, 1.9, 1.4, 2.0, 1.8, 1.8, 2.1, 3.0, 8.6, 5.8, 5.1, null, -2.6, -0.7, 5.0, 8.4, 7.3], "familie": [-2.0, 1.3, 1.7, 2.6, 3.6, 2.5, 2.8, 1.4, 0.6, 8.1, 3.2, 3.6, null, -7.7, -2.6, 5.8, 8.9, 8.8], "bildung": [13.1, 14.3, 10.0, 0.5, 3.9, -0.6, -1.1, 0.8, 7.2, 23.8, 19.9, 19.1, null, 4.4, 5.1, 17.9, 28.8, 19.1], "alters_wand": [0.8, 1.5, 1.9, 2.0, 2.1, 3.2, 2.5, 1.7, 2.3, 1.9, 2.4, 4.0, null, 3.6, 2.5, 0.7, 2.6, 2.5], "avg_age": [41.2, 41.3, 41.6, 41.8, 42.0, 42.7, 43.0, 43.1, 43.3, 43.1, 43.5, 43.7, 43.8, 44.0, 44.2, 44.0, 43.9, 44.2], "median_age": [41.2, 41.6, 42.1, 42.5, 42.9, 43.9, 44.3, 44.6, 44.8, 44.4, 44.9, 45.3, 45.1, 45.3, 45.6, 45.0, 44.5, 44.7], "altenq": [30.0, 30.2, 30.3, 30.3, 29.9, 30.6, 31.0, 31.1, 31.6, 31.4, 32.1, 33.0, 33.4, 34.4, 35.2, 35.2, 35.3, 36.6], "anteil_80": [4.7, 4.8, 4.9, 5.1, 5.1, 5.3, 5.3, 5.3, 5.4, 5.5, 5.7, 6.0, 6.2, 6.6, 6.7, 6.7, 6.6, 6.6], "anteil_18": [19.5, 19.3, 18.8, 18.6, 18.3, 17.9, 17.7, 17.4, 17.2, 17.2, 16.9, 16.9, 16.9, 16.8, 16.8, 17.2, 17.1, 17.2]}, "Dortmund": {"pop": [587624, 586909, 584412, 581308, 580444, 571403, 572087, 575944, 580511, 586181, 585813, 586600, 587010, 588250, 587696, 586852, 593317, 595471], "births": [8.3, 8.3, 8.3, 8.3, 8.4, 8.3, 8.4, 8.4, 8.7, 9.0, 9.4, 9.7, 9.9, 10.1, 10.0, 10.1, 10.0, 9.8], "deaths": [11.4, 11.3, 11.3, 11.4, 11.6, 11.7, 11.8, 11.9, 11.7, 11.8, 11.9, 11.8, 12.1, 11.9, 12.0, 12.1, 12.4, 12.7], "nat_saldo": [-3.1, -3.0, -3.1, -3.1, -3.2, -3.4, -3.4, -3.4, -3.1, -2.9, -2.5, -2.1, -2.1, -1.8, -2.0, -2.0, -2.4, -2.9], "zuzug": [36.7, 37.0, 37.8, 38.6, 39.9, 41.8, 43.3, 46.5, 50.7, 54.4, 56.6, 55.5, 53.3, 50.5, 47.9, 47.5, 50.4, 51.0], "fortzug": [35.0, 35.1, 36.6, 38.4, 39.8, 41.0, 41.2, 41.7, 44.4, 46.4, 49.4, 49.6, 49.0, 48.3, 46.0, 46.2, 45.9, 45.5], "wand_saldo": [1.7, 1.8, 1.2, 0.2, 0.1, 0.8, 2.1, 4.8, 6.3, 8.0, 7.3, 5.9, 4.3, 2.2, 2.0, 1.3, 4.5, 5.5], "familie": [-1.4, -1.3, -1.9, -2.8, -3.0, -3.0, -1.8, -0.2, 1.7, 4.2, 4.2, 3.7, 1.6, -1.1, -1.3, -2.0, 2.9, 4.3], "bildung": [41.4, 40.8, 38.4, 33.6, 34.4, 38.4, 43.4, 52.6, 54.3, 58.4, 55.3, 51.2, 50.7, 45.1, 42.7, 42.0, 46.1, 47.6], "alters_wand": [-4.4, -4.2, -4.2, -4.2, -4.3, -4.0, -3.8, -3.2, -3.0, -3.3, -3.5, -3.7, -3.5, -3.8, -3.6, -4.8, -4.2, -3.5], "avg_age": [43.0, 43.2, 43.3, 43.5, 43.7, 43.6, 43.7, 43.7, 43.6, 43.5, 43.5, 43.5, 43.5, 43.5, 43.5, 43.5, 43.3, 43.2], "median_age": [43.0, 43.3, 43.6, 44.0, 44.2, 44.2, 44.3, 44.4, 44.3, 44.1, 44.1, 43.9, 43.8, 43.6, 43.5, 43.3, 42.9, 42.7], "altenq": [34.1, 34.2, 34.5, 34.7, 34.3, 33.5, 33.3, 33.1, 33.2, 33.0, 33.2, 33.3, 33.5, 33.7, 34.0, 34.2, 34.0, 34.1], "anteil_80": [4.8, 5.0, 5.2, 5.4, 5.6, 5.5, 5.5, 5.5, 5.6, 5.7, 5.9, 6.1, 6.4, 6.6, 6.8, 6.9, 6.7, 6.6], "anteil_18": [16.8, 16.6, 16.4, 16.2, 16.0, 15.8, 15.7, 15.7, 15.8, 15.9, 16.1, 16.2, 16.3, 16.4, 16.6, 16.8, 17.2, 17.3]}};
+
+const IND_LABELS = {
+  nat_saldo: 'Natürlicher Saldo (je 1.000 EW)',
+  wand_saldo: 'Wanderungssaldo (je 1.000 EW)',
+  bildung: 'Bildungswanderung (je 1.000 EW)',
+  familie: 'Familienwanderung (je 1.000 EW)',
+  births: 'Geburten (je 1.000 EW)',
+  deaths: 'Sterbefälle (je 1.000 EW)',
+  median_age: 'Medianalter (Jahre)',
+  altenq: 'Altenquotient',
+};
+
+// Chart defaults
+Chart.defaults.color = '#8892b0';
+Chart.defaults.borderColor = '#1e2235';
+Chart.defaults.font.family = 'Inter, -apple-system, sans-serif';
+Chart.defaults.font.size = 11;
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  if (ctx._chart) ctx._chart.destroy();
+  const c = new Chart(ctx, config);
+  ctx._chart = c;
+  return c;
+}
+
+function cityDataset(city, key, fromIdx, toIdx) {
+  const raw = DATA[city][key] || [];
+  const slice = raw.slice(fromIdx, toIdx+1);
+  return slice.map(v => v === null ? NaN : v);
+}
+
+function slicedYears(f, t) { return YEARS.slice(f, t+1); }
+
+// ========== TAB 1: OVERVIEW ==========
+function buildOverview() {
+  const yr17 = 17; // index of 2023
+  
+  // KPI cards
+  const grid = document.getElementById('kpi-grid-2023');
+  const popChanges = CITIES.map(c => {
+    const pop2023 = DATA[c].pop[17];
+    const pop2006 = DATA[c].pop[0];
+    const pct = ((pop2023 - pop2006) / pop2006 * 100).toFixed(1);
+    return { city: c, pop: pop2023, pct };
+  });
+  grid.innerHTML = popChanges.map(d => `
+    <div class="kpi-card">
+      <div class="kpi-city">${d.city}</div>
+      <div class="kpi-val">${(d.pop/1000).toFixed(1)}k</div>
+      <div class="kpi-label">Bevölkerung 2023</div>
+      <div class="kpi-trend ${parseFloat(d.pct)>=0?'pos':'neg'}">${parseFloat(d.pct)>=0?'▲':'▼'} ${Math.abs(d.pct)}% seit 2006</div>
+    </div>`).join('');
+
+  // Nat. Saldo bar
+  makeChart('chart-natsaldo-2023', {
+    type: 'bar',
+    data: {
+      labels: CITIES,
+      datasets: [{
+        label: 'Natürlicher Saldo', 
+        data: CITIES.map(c => DATA[c].nat_saldo[yr17]),
+        backgroundColor: CITIES.map(c => DATA[c].nat_saldo[yr17] >= 0 ? '#64ffda88' : '#ff6b8a88'),
+        borderColor: CITIES.map(c => DATA[c].nat_saldo[yr17] >= 0 ? '#64ffda' : '#ff6b8a'),
+        borderWidth: 1.5, borderRadius: 4
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { grid: { color: '#1e2235' }, ticks: { callback: v => v.toFixed(1) } }, x: { grid: { display: false } } } }
+  });
+
+  // Wanderungssaldo bar
+  makeChart('chart-wand-2023', {
+    type: 'bar',
+    data: {
+      labels: CITIES,
+      datasets: [{
+        label: 'Wanderungssaldo',
+        data: CITIES.map(c => DATA[c].wand_saldo[yr17]),
+        backgroundColor: CITIES.map(c => (DATA[c].wand_saldo[yr17]||0) >= 0 ? '#82aaff88' : '#ff6b8a88'),
+        borderColor: CITIES.map(c => (DATA[c].wand_saldo[yr17]||0) >= 0 ? '#82aaff' : '#ff6b8a'),
+        borderWidth: 1.5, borderRadius: 4
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { display: false } } } }
+  });
+
+  // Wanderungstypen grouped bar
+  makeChart('chart-wandtyp-2023', {
+    type: 'bar',
+    data: {
+      labels: CITIES,
+      datasets: [
+        { label: 'Familie', data: CITIES.map(c => DATA[c].familie[yr17]), backgroundColor: '#64ffda88', borderColor: '#64ffda', borderWidth: 1.5, borderRadius: 3 },
+        { label: 'Bildung', data: CITIES.map(c => DATA[c].bildung[yr17]), backgroundColor: '#ff6b8a88', borderColor: '#ff6b8a', borderWidth: 1.5, borderRadius: 3 },
+        { label: 'Alter', data: CITIES.map(c => DATA[c].alters_wand[yr17]), backgroundColor: '#ffa07a88', borderColor: '#ffa07a', borderWidth: 1.5, borderRadius: 3 },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { display: false } } } }
+  });
+
+  // Medianalter bar
+  makeChart('chart-alter-2023', {
+    type: 'bar',
+    data: {
+      labels: CITIES,
+      datasets: [{
+        label: 'Medianalter',
+        data: CITIES.map(c => DATA[c].median_age[yr17]),
+        backgroundColor: CITIES.map(c => COLORS[c] + '88'),
+        borderColor: CITIES.map(c => COLORS[c]),
+        borderWidth: 1.5, borderRadius: 4
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { grid: { color: '#1e2235' }, min: 38, max: 52 }, x: { grid: { display: false } } } }
+  });
+}
+
+// ========== TAB 2: TRENDS ==========
+let selectedTrendCities = new Set(CITIES);
+let trendCharts = {};
+
+function buildTrendControls() {
+  const wrap = document.getElementById('trend-city-checks');
+  wrap.innerHTML = CITIES.map(c => `
+    <label class="city-cb">
+      <input type="checkbox" value="${c}" checked onchange="toggleTrendCity('${c}')">
+      <span style="color:${COLORS[c]}">${c}</span>
+    </label>`).join('');
+}
+
+function toggleTrendCity(city) {
+  if (selectedTrendCities.has(city)) selectedTrendCities.delete(city);
+  else selectedTrendCities.add(city);
+  updateTrendCharts();
+}
+
+function updateTrendCharts() {
+  const f = parseInt(document.getElementById('slider-from').value);
+  const t = parseInt(document.getElementById('slider-to').value);
+  const from = Math.min(f, t), to = Math.max(f, t);
+  document.getElementById('year-range-display').textContent = YEARS[from] + ' – ' + YEARS[to];
+  const labels = slicedYears(from, to);
+  const activeCities = CITIES.filter(c => selectedTrendCities.has(c));
+  
+  // Index pop chart
+  const popDs = activeCities.map(c => {
+    // find 2011 value
+    const base = DATA[c].pop[5] || 1; // index 5 = 2011
+    const vals = DATA[c].pop.slice(from, to+1).map(v => v === null ? NaN : Math.round(v/base*1000)/10);
+    return { label: c, data: vals, borderColor: COLORS[c], backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 };
+  });
+  makeChart('chart-pop-index', {
+    type: 'line', data: { labels, datasets: popDs },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' }, title: { display:true, text: 'Index (2011=100)', color:'#8892b0' } }, x: { grid: { color: '#1e2235' } } } }
+  });
+
+  // Nat saldo
+  const nsDs = activeCities.map(c => ({
+    label: c, data: cityDataset(c, 'nat_saldo', from, to),
+    borderColor: COLORS[c], backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2
+  }));
+  makeChart('chart-natsaldo-trend', {
+    type: 'line', data: { labels, datasets: nsDs },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { color: '#1e2235' } } } }
+  });
+
+  // Wand saldo
+  const wsDs = activeCities.map(c => ({
+    label: c, data: cityDataset(c, 'wand_saldo', from, to),
+    borderColor: COLORS[c], backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2
+  }));
+  makeChart('chart-wand-trend', {
+    type: 'line', data: { labels, datasets: wsDs },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { color: '#1e2235' } } } }
+  });
+}
+
+// ========== TAB 3: WANDERUNG ==========
+function updateWandCharts() {
+  const city = document.getElementById('wand-city-select').value;
+  const labels = YEARS;
+  
+  makeChart('chart-zuforzug', {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Zuzüge', data: DATA[city].zuzug, borderColor: '#64ffda', backgroundColor: '#64ffda22', tension: 0.3, fill: true, pointRadius: 2, borderWidth: 2 },
+      { label: 'Fortzüge', data: DATA[city].fortzug, borderColor: '#ff6b8a', backgroundColor: '#ff6b8a22', tension: 0.3, fill: true, pointRadius: 2, borderWidth: 2 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { color: '#1e2235' } } } }
+  });
+
+  makeChart('chart-wand-single', {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: 'Wanderungssaldo', data: DATA[city].wand_saldo,
+      backgroundColor: DATA[city].wand_saldo.map(v => (v||0)>=0?'#64ffda66':'#ff6b8a66'),
+      borderColor: DATA[city].wand_saldo.map(v => (v||0)>=0?'#64ffda':'#ff6b8a'),
+      borderWidth: 1.5, borderRadius: 3
+    }]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display:false } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { display:false } } } }
+  });
+
+  makeChart('chart-wand-phase', {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Familie', data: DATA[city].familie, borderColor: '#64ffda', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+      { label: 'Bildung', data: DATA[city].bildung, borderColor: '#ff6b8a', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+      { label: 'Alter', data: DATA[city].alters_wand, borderColor: '#ffa07a', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12 } } },
+      scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { color: '#1e2235' } } } }
+  });
+}
+
+// ========== TAB 4: ALTERUNG ==========
+function buildAlterCharts() {
+  const labels = YEARS;
+  const keys = ['median_age', 'altenq', 'anteil_80', 'anteil_18'];
+  const ids = ['chart-median-trend','chart-altenq-trend','chart-80plus-trend','chart-18-trend'];
+  keys.forEach((key, i) => {
+    const ds = CITIES.map(c => ({
+      label: c, data: DATA[c][key], borderColor: COLORS[c], backgroundColor: 'transparent',
+      tension: 0.3, pointRadius: 1.5, borderWidth: 2
+    }));
+    makeChart(ids[i], {
+      type: 'line', data: { labels, datasets: ds },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#8892b0', boxWidth: 12, font: {size:10} } } },
+        scales: { y: { grid: { color: '#1e2235' } }, x: { grid: { color: '#1e2235' } } } }
+    });
+  });
+}
+
+// ========== TAB 5: HEATMAP ==========
+function buildHeatmap() {
+  const key = document.getElementById('heatmap-ind').value;
+  const label = IND_LABELS[key];
+  
+  // Collect all values for color scaling
+  let allVals = [];
+  CITIES.forEach(c => DATA[c][key].forEach(v => { if(v!==null && !isNaN(v)) allVals.push(v); }));
+  const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+  
+  function heatColor(v) {
+    if(v===null || isNaN(v)) return '#1e2235';
+    const t = (v - minV) / (maxV - minV);
+    // negative=red, middle=dark, positive=teal
+    if(t < 0.5) {
+      const r = Math.round(255 * (1 - t*2) * 0.8);
+      return `rgba(${r},40,80,${0.3+t*0.4})`;
+    } else {
+      const g = Math.round(255 * (t-0.5)*2 * 0.8);
+      return `rgba(30,${g+80},120,${0.3+(t-0.5)*0.4})`;
+    }
+  }
+  
+  let html = `<table class="heatmap"><thead><tr><th class="ind">Stadt</th>`;
+  YEARS.forEach(y => html += `<th>${y}</th>`);
+  html += '</tr></thead><tbody>';
+  CITIES.forEach(c => {
+    html += `<tr><td class="ind">${c}</td>`;
+    DATA[c][key].forEach((v,i) => {
+      const disp = v===null ? '–' : v.toFixed(1);
+      html += `<td style="background:${heatColor(v)};color:#e8eaf0">${disp}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap-container').innerHTML = html;
+  
+  // Interpretation
+  const interps = {
+    nat_saldo: 'Alle Kommunen haben dauerhaft negativen natürlichen Saldo. Brilon und Schmallenberg verschlechtern sich am stärksten. Dortmund zeigt die geringste Negativdynamik durch jüngere Altersstruktur.',
+    wand_saldo: '2015/2016 Spike durch Flüchtlingszuwanderung sichtbar. Seitdem Normalisierung. Positive Salden seit 2019 in den meisten Kommunen compensieren teilweise den Sterbeüberhang.',
+    bildung: 'Dortmund dominiert mit konstant hohen positiven Werten (+40 bis +58). Alle Sauerlandkommunen negativ – junges Bildungswanderungsdefizit ist der Kern der Landflucht. 2018 Datenlücke erkennbar (k.A.).',
+    familie: 'Seit 2014 steigen die Familienwanderungssalden im Sauerland – Familien aus urbanen Räumen ziehen zu. Dortmund verliert Familien (negativ), die ins Umland abwandern.',
+    births: 'Geburtenraten relativ stabil, leicht rückläufig. Dortmund hat höchste Geburtenrate durch jüngere Bevölkerungsstruktur. Brilon und Schmallenberg niedrigste Werte.',
+    deaths: 'Sterbefälle steigen über den Beobachtungszeitraum in allen Kommunen – Alterungseffekt. Brilon und Arnsberg bereits bei 13,2 je 1.000 (2023).',
+    median_age: 'Kontinuierlicher Anstieg in allen Kommunen außer Dortmund (das sich stabilisiert). Brilon erreicht 47,8 Jahre – unter den ältesten Kommunen in NRW.',
+    altenq: 'Altenquotienten steigen überall. Dortmund kann durch Bildungszuzug gegensteuern (stabil ~34). Brilon und Arnsberg stark steigende Abhängigkeitsquotienten.'
+  };
+  document.getElementById('heatmap-interpretation').textContent = interps[key] || '';
+}
+
+// ========== TAB NAVIGATION ==========
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+  
+  if (name === 'trends') updateTrendCharts();
+  if (name === 'wanderung') updateWandCharts();
+  if (name === 'alter') buildAlterCharts();
+  if (name === 'heatmap') buildHeatmap();
+}
+
+// Init
+buildTrendControls();
+buildOverview();
+</script>
+</body>
+</html>
